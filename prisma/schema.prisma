@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+}
+
+model Events {
+  eventID           Int                 @id @default(autoincrement())
+  name              String
+  description       String
+  eventTime         DateTime
+  venue             String
+  capacity          Int
+  saleStart         DateTime
+  saleEnds          DateTime
+  eventTicketCounts EventTicketCounts[]
+  reservations      Reservations[]
+}
+
+model EventTicketCounts {
+  eventID             Int
+  ticketType          String
+  totalTickets        Int
+  availableTickets    Int
+  ongoingReservations Int
+  unitPrice           Float
+
+  event        Events         @relation(fields: [eventID], references: [eventID], onDelete: Cascade)
+  reservations Reservations[]
+
+  @@id([eventID, ticketType])
+}
+
+model Reservations {
+  reservationID  String            @id @default(uuid())
+  eventID        Int
+  ticketType     String
+  userID         Int
+  expirationTime DateTime
+  status         ReservationStatus
+  ticketCount    Int // Added ticketCount field
+
+  event             Events            @relation(fields: [eventID], references: [eventID], onDelete: Cascade)
+  eventTicketCounts EventTicketCounts @relation(fields: [eventID, ticketType], references: [eventID, ticketType], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([eventID, ticketType, userID])
+}
+
+enum ReservationStatus {
+  ONGOING
+  COMPLETE
+  CANCELLED
+}
